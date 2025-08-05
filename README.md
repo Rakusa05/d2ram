@@ -1,6 +1,6 @@
-# Tauri + SvelteKit + TypeScript
+# Diablo II Resurrected Account Manager
 
-This template should help get you started developing with Tauri, SvelteKit and TypeScript in Vite.
+This will hopefully become a small app that helps launch multiple instances of Diablo II Resurrected.
 
 ## Recommended IDE Setup
 
