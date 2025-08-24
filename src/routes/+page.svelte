@@ -1,85 +1,81 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
-  import Footer from "../components/Footer.svelte";
   import Header from "../components/Header.svelte";
   import AccountCards from "../components/AccountCards.svelte";
+  import Footer from "../components/Footer.svelte";
+  import AddAccount from "../components/AddAccount.svelte";
+  import EditAccount from "../components/EditAccount.svelte";
+  import type { Account } from "../lib/types";
 
-  type Account = {
-    id: number;
-    displayName: string;
-    accountLogin: string;
-    password: string;
-    region: "america" | "europe" | "asia" | null;
-    status: boolean;
-  };
+  let accounts = $state<Array<Account>>([]);
+  $inspect(accounts);
 
-  let accounts: Account[] = [
-    {
-      id: 1,
-      displayName: "Account1",
-      accountLogin: "Account1@gmail.com",
-      password: "Pa$$w0rD123!",
-      region: "america",
-      status: false,
-    },
-    {
-      id: 2,
-      displayName: "Account2",
-      accountLogin: "Account2@gmail.com",
-      password: "Pa$$w0rD123!",
-      region: "america",
-      status: true,
-    },
-    {
-      id: 3,
-      displayName: "Account3",
-      accountLogin: "Account3@gmail.com",
-      password: "Pa$$w0rD123!",
-      region: "america",
-      status: true,
-    },
-    {
-      id: 4,
-      displayName: "Account4",
-      accountLogin: "Account4@gmail.com",
-      password: "Pa$$w0rD123!",
-      region: "asia",
-      status: true,
-    },
-    {
-      id: 5,
-      displayName: "Account5",
-      accountLogin: "Account5@gmail.com",
-      password: "Pa$$w0rD123!",
-      region: "asia",
-      status: true,
-    },
-    {
-      id: 6,
-      displayName: "Account6",
-      accountLogin: "Account6@gmail.com",
-      password: "Pa$$w0rD123!",
-      region: null,
-      status: false,
-    },
-    {
-      id: 7,
-      displayName: "Account7",
-      accountLogin: "Account7@gmail.com",
-      password: "Pa$$w0rD123!",
-      region: "europe",
-      status: true,
-    },
-    {
-      id: 8,
-      displayName: "Account8",
-      accountLogin: "Account8@gmail.com",
-      password: "Pa$$w0rD123!",
-      region: null,
-      status: false,
-    },
-  ];
+  let addAccountModal = $state(false);
+  let editAccountModal = $state(false);
+  let selectedAccount = $state<Account | null>(null);
+
+  function openEdit(account: Account) {
+    selectedAccount = account;
+    editAccountModal = true;
+  }
+
+  function isSameInformation(a: Account | null, b: Account | null) {
+    return (
+      a?.displayName === b?.displayName &&
+      a?.accountLogin === b?.accountLogin &&
+      a?.password === b?.password
+    );
+  }
+
+  async function addAccount(account: Account) {
+    accounts = await invoke("add_account", {
+      newAccount: {
+        displayName: account.displayName,
+        accountLogin: account.accountLogin,
+        password: account.password,
+      },
+    });
+  }
+
+  async function editAccount(account: Account) {
+    if (!isSameInformation(account, selectedAccount)) {
+      accounts = await invoke("edit_account", {
+        id: account.id,
+        updatedAccount: {
+          displayName: account.displayName,
+          accountLogin: account.accountLogin,
+          password: account.password,
+        },
+      });
+    }
+  }
+
+  async function deleteAccount(account: Account) {
+    accounts = await invoke("delete_account", {
+      id: account.id,
+    });
+  }
+
+  async function firstAccountLoad() {
+    accounts = await invoke("get_accounts_info");
+  }
+  firstAccountLoad();
+
+  $effect(() => {
+    if (!editAccountModal) selectedAccount = null;
+  });
 </script>
+
+<AddAccount bind:open={addAccountModal} onAccept={addAccount} />
+
+{#if selectedAccount}
+  <EditAccount
+    bind:open={editAccountModal}
+    {selectedAccount}
+    onDelete={deleteAccount}
+    onEdit={editAccount}
+  />
+{/if}
 
 <main class="text-white h-dvh flex flex-col">
   <div class="h-2 bg-neutral-950 sticky"></div>
@@ -87,20 +83,13 @@
     <div class="h-full overflow-y-auto p-5 custom-scrollbar mx-1">
       <div class="grid [grid-template-columns:repeat(auto-fit,400px)] gap-5">
         {#each accounts as account}
-          <AccountCards
-            id={account.id}
-            displayName={account.displayName}
-            accountLogin={account.accountLogin}
-            password={account.password}
-            region={account.region}
-            status={account.status}
-          />
+          <AccountCards {account} onDisplayClick={openEdit} />
         {/each}
       </div>
     </div>
   </div>
-  <div class="min-h-30 bg-neutral-950 flex sm:flex-col md:flex-row sticky">
-    <Footer />
+  <div class="min-h-30 bg-neutral-950 content-center">
+    <Footer bind:open={addAccountModal} />
   </div>
 </main>
 
