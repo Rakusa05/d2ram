@@ -49,7 +49,7 @@ struct AppState {
     accounts: Mutex<Vec<Account>>,
 }
 
-const SALT: &[u8] = "D2RAM";
+const SALT: &[u8] = b"D2RAM";
 
 fn obfuscate_password(pw: &str) -> String {
     let xored: Vec<u8> = pw
