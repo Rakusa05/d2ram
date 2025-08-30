@@ -1,14 +1,14 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
+  import { onMount } from "svelte";
   import Header from "../components/Header.svelte";
   import AccountCards from "../components/AccountCards.svelte";
   import Footer from "../components/Footer.svelte";
   import AddAccount from "../components/AddAccount.svelte";
   import EditAccount from "../components/EditAccount.svelte";
-  import type { Account } from "../lib/types";
+  import type { Account, Region } from "../lib/types";
 
   let accounts = $state<Array<Account>>([]);
-  $inspect(accounts);
 
   let addAccountModal = $state(false);
   let editAccountModal = $state(false);
@@ -56,10 +56,25 @@
     });
   }
 
-  async function firstAccountLoad() {
+  async function launchAccount(id: Account["id"] | String, region: Region) {
+    accounts = await invoke("launch_account", {
+      id: id.toString(),
+      region,
+    });
+  }
+
+  async function refreshAccount() {
     accounts = await invoke("get_accounts_info");
   }
-  firstAccountLoad();
+
+  onMount(() => {
+    refreshAccount();
+    const timer = setInterval(() => {
+      refreshAccount();
+    }, 3000);
+
+    return () => clearInterval(timer);
+  });
 
   $effect(() => {
     if (!editAccountModal) selectedAccount = null;
@@ -83,13 +98,17 @@
     <div class="h-full overflow-y-auto p-5 custom-scrollbar mx-1">
       <div class="grid [grid-template-columns:repeat(auto-fit,400px)] gap-5">
         {#each accounts as account}
-          <AccountCards {account} onDisplayClick={openEdit} />
+          <AccountCards
+            {account}
+            onDisplayClick={openEdit}
+            onPlayClick={launchAccount}
+          />
         {/each}
       </div>
     </div>
   </div>
   <div class="min-h-30 bg-neutral-950 content-center">
-    <Footer bind:open={addAccountModal} />
+    <Footer bind:open={addAccountModal} onPlayClick={launchAccount} />
   </div>
 </main>
 

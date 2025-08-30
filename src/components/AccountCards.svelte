@@ -1,25 +1,21 @@
 <script lang="ts">
   import { Button, ButtonGroup } from "flowbite-svelte";
-  import type { Account } from "../lib/types";
+  import type { Account, Region } from "../lib/types";
 
-  let { account, onDisplayClick } = $props<{
+  let { account, onDisplayClick, onPlayClick } = $props<{
     account: Account;
     onDisplayClick: (a: Account) => void | Promise<void>;
+    onPlayClick: (a: Account["id"], r: Region) => void | Promise<void>;
   }>();
-
-  function test_button(
-    running: boolean,
-    btnregion: "america" | "europe" | "asia",
-    region?: string | null
-  ) {
-    alert(
-      `ID:${account.id}\nAccount:${account.displayName}\nLogin: ${account.accountLogin}\nPassword: ${account.password}\n\n\nRunning: ${account.running}\nRegion: ${account.region}\n\nChanging Running to ${!account.running}\nChanging Region to ${account.btnregion}\n\n${account.pid ? "PID: " + account.pid : ""}`
-    );
-  }
 
   const editAccount = () => {
     console.log("editAccount");
     onDisplayClick(account);
+  };
+
+  const launchAccount = (region: Region) => {
+    console.log(`Launched Game for Account\n${account.id}\n${region}`);
+    onPlayClick(account.id, region);
   };
 </script>
 
@@ -51,16 +47,14 @@
         pill
         outline={!(account.running && account.region === "america")}
         disabled={account.running && !(account.region === "america")}
-        onclick={() => test_button(account.running, "america", account.region)}
-        >America</Button
+        onclick={() => launchAccount("america")}>America</Button
       >
       <Button
         color={account.running && account.region === "europe" ? "green" : "red"}
         class="w-22 hover:cursor-pointer"
         outline={!(account.running && account.region === "europe")}
         disabled={account.running && !(account.region === "europe")}
-        onclick={() => test_button(account.running, "europe", account.region)}
-        >Europe</Button
+        onclick={() => launchAccount("europe")}>Europe</Button
       >
       <Button
         color={account.running && account.region === "asia" ? "green" : "red"}
@@ -68,8 +62,7 @@
         pill
         outline={!(account.running && account.region === "asia")}
         disabled={account.running && !(account.region === "asia")}
-        onclick={() => test_button(account.running, "asia", account.region)}
-        >Asia</Button
+        onclick={() => launchAccount("asia")}>Asia</Button
       >
     </ButtonGroup>
   </div>
