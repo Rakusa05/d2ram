@@ -1,10 +1,15 @@
 <script lang="ts">
-  import type { Region } from "$lib/types";
+  import type { Account, Region } from "$lib/types";
   import { Button, ButtonGroup } from "flowbite-svelte";
   import { UserAddSolid, CogSolid } from "flowbite-svelte-icons";
 
-  let { open = $bindable(false), onPlayClick } = $props<{
+  let {
+    open = $bindable(false),
+    accounts,
+    onPlayClick,
+  } = $props<{
     open: boolean;
+    accounts: Array<Account>;
     onPlayClick: (a: String, r: Region) => void | Promise<void>;
   }>();
 
@@ -12,6 +17,28 @@
     console.log(`Launching game for all accounts\n${region}`);
     onPlayClick("all", region);
   };
+
+  let status = $derived<{
+    allRunning: boolean;
+    allAmerica: boolean;
+    allEurope: boolean;
+    allAsia: boolean;
+    americaCount: number;
+    europeCount: number;
+    asiaCount: number;
+    accountNumber: number;
+  }>({
+    allRunning: accounts.every((acc: Account) => acc.running),
+    allAmerica: accounts.every((acc: Account) => acc.region === "america"),
+    allEurope: accounts.every((acc: Account) => acc.region === "europe"),
+    allAsia: accounts.every((acc: Account) => acc.region === "asia"),
+    americaCount: accounts.filter((acc: Account) => acc.region === "america")
+      .length,
+    europeCount: accounts.filter((acc: Account) => acc.region === "europe")
+      .length,
+    asiaCount: accounts.filter((acc: Account) => acc.region === "asia").length,
+    accountNumber: accounts.length,
+  });
 </script>
 
 <!-- Need to finish placement for small screen size -->
@@ -28,23 +55,45 @@
     <p class="text-center w-full">Open all clients</p>
     <ButtonGroup>
       <Button
-        color="red"
-        class="w-22"
+        color={status.americaCount === status.accountNumber && status.allRunning
+          ? "green"
+          : status.americaCount > 0 &&
+              status.americaCount < status.accountNumber
+            ? "orange"
+            : "red"}
+        class="w-22 hover:cursor-pointer"
+        outline={!(
+          status.americaCount === status.accountNumber && status.allRunning
+        )}
+        disabled={status.allRunning}
         pill
-        outline
         onclick={() => launchAccount("america")}>America</Button
       >
       <Button
-        color="red"
-        class="w-22"
-        outline
+        color={status.europeCount === status.accountNumber && status.allRunning
+          ? "green"
+          : status.europeCount > 0 && status.europeCount < status.accountNumber
+            ? "orange"
+            : "red"}
+        class="w-22 hover:cursor-pointer"
+        outline={!(
+          status.europeCount === status.accountNumber && status.allRunning
+        )}
+        disabled={status.allRunning}
         onclick={() => launchAccount("europe")}>Europe</Button
       >
       <Button
-        color="red"
-        class="w-22"
+        color={status.asiaCount === status.accountNumber && status.allRunning
+          ? "green"
+          : status.asiaCount > 0 && status.asiaCount < status.accountNumber
+            ? "orange"
+            : "red"}
+        class="w-22 hover:cursor-pointer"
+        outline={!(
+          status.asiaCount === status.accountNumber && status.allRunning
+        )}
+        disabled={status.allRunning}
         pill
-        outline
         onclick={() => launchAccount("asia")}>Asia</Button
       >
     </ButtonGroup>

@@ -93,7 +93,9 @@
 {/if}
 
 <main class="text-white h-dvh flex flex-col">
-  <div class="h-2 bg-neutral-950 sticky"></div>
+  <!--
+    <Header />
+  -->
   <div class="grow bg-neutral-800 overflow-hidden">
     <div class="h-full overflow-y-auto p-5 custom-scrollbar mx-1">
       <div class="grid [grid-template-columns:repeat(auto-fit,400px)] gap-5">
@@ -108,7 +110,11 @@
     </div>
   </div>
   <div class="min-h-30 bg-neutral-950 content-center">
-    <Footer bind:open={addAccountModal} onPlayClick={launchAccount} />
+    <Footer
+      bind:open={addAccountModal}
+      {accounts}
+      onPlayClick={launchAccount}
+    />
   </div>
 </main>
 

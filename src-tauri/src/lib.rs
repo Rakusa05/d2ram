@@ -1,10 +1,11 @@
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-
 use serde::{Deserialize, Serialize};
 use sysinfo::{System, Pid};
 use tauri::State;
-use std::{path::PathBuf, process::Command, sync::Mutex};
+use std::{path::PathBuf, sync::Mutex};
 use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine as _};
+
+mod handle;
+mod account;
 
 const D2R_PATH: &str = r"C:\Program Files (x86)\DIIR\D2R.exe";
 
@@ -194,56 +195,7 @@ fn delete_account(id: u32, state: State<AppState>) -> Result<Vec<Account>, Strin
   Ok(accounts.clone())
 }
 
-#[tauri::command]
-fn launch_account(id: String, region: Region, state: State<AppState>) -> Result<Vec<Account>, String> {
-  use std::time::Duration;
 
-  let mut accounts = state.accounts.lock().unwrap();
-
-  let server_addr = match region {
-    Region::America => "us.actual.battle.net",
-    Region::Europe  => "eu.actual.battle.net",
-    Region::Asia    => "kr.actual.battle.net",
-  };
-
-  let launch_one = |acc: &mut Account| -> Result<(), String> {
-    if acc.rt.running {
-      return Ok(());
-    }
-
-    let args = [
-      "-username", &acc.cfg.accountLogin,
-      "-password", &acc.cfg.password,
-      "-address",  server_addr,
-    ];
-
-    let child = Command::new(D2R_PATH)
-      .args(args)
-      .spawn()
-      .map_err(|e| format!("Failed to launch D2R for id {}: {}", acc.cfg.id, e))?;
-
-    acc.rt.running = true;
-    acc.rt.region  = Some(region.clone());
-    acc.rt.pid     = Some(child.id());
-    Ok(())
-  };
-
-  if id.eq_ignore_ascii_case("all") {
-
-    for acc in accounts.iter_mut() {
-       std::thread::sleep(Duration::from_millis(500));
-      let _ = launch_one(acc);
-    }
-  } else {
-    let id_num: u32 = id.parse().map_err(|_| format!("Invalid id: {}", id))?;
-    let acc = accounts.iter_mut()
-      .find(|a| a.cfg.id == id_num)
-      .ok_or_else(|| format!("Account {} not found", id_num))?;
-    launch_one(acc)?;
-  }
-
-  Ok(accounts.clone())
-}
 
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -257,7 +209,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![get_accounts_info, add_account, edit_account, delete_account, launch_account])
+        .invoke_handler(tauri::generate_handler![get_accounts_info, add_account, edit_account, delete_account, account::launch::launch_account])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
