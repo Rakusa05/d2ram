@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { onMount } from "svelte";
+  import { Alert } from "flowbite-svelte";
   import Header from "../components/Header.svelte";
   import AccountCards from "../components/AccountCards.svelte";
   import Footer from "../components/Footer.svelte";
@@ -13,6 +14,8 @@
   let addAccountModal = $state(false);
   let editAccountModal = $state(false);
   let selectedAccount = $state<Account | null>(null);
+  let alertOpen = $state(false);
+  let alertMsg = $state<string>("");
 
   function openEdit(account: Account) {
     selectedAccount = account;
@@ -22,8 +25,10 @@
   function isSameInformation(a: Account | null, b: Account | null) {
     return (
       a?.displayName === b?.displayName &&
+      a?.connectionType === b?.connectionType &&
       a?.accountLogin === b?.accountLogin &&
-      a?.password === b?.password
+      a?.password === b?.password &&
+      a?.token === b?.token
     );
   }
 
@@ -31,8 +36,10 @@
     accounts = await invoke("add_account", {
       newAccount: {
         displayName: account.displayName,
+        connectionType: account.connectionType,
         accountLogin: account.accountLogin,
         password: account.password,
+        token: account.token,
       },
     });
   }
@@ -43,8 +50,10 @@
         id: account.id,
         updatedAccount: {
           displayName: account.displayName,
+          connectionType: account.connectionType,
           accountLogin: account.accountLogin,
           password: account.password,
+          token: account.token,
         },
       });
     }
@@ -67,6 +76,11 @@
     accounts = await invoke("get_accounts_info");
   }
 
+  function alert(msg: string) {
+    alertOpen = true;
+    alertMsg = msg;
+  }
+
   onMount(() => {
     refreshAccount();
     const timer = setInterval(() => {
@@ -79,9 +93,19 @@
   $effect(() => {
     if (!editAccountModal) selectedAccount = null;
   });
+
+  $effect(() => {
+    if (alertOpen) {
+      const timer = setInterval(() => {
+        alertOpen = false;
+      }, 7000);
+
+      return () => clearInterval(timer);
+    }
+  });
 </script>
 
-<AddAccount bind:open={addAccountModal} onAccept={addAccount} />
+<AddAccount bind:open={addAccountModal} onAccept={addAccount} onAlert={alert} />
 
 {#if selectedAccount}
   <EditAccount
@@ -89,10 +113,18 @@
     {selectedAccount}
     onDelete={deleteAccount}
     onEdit={editAccount}
+    onAlert={alert}
   />
 {/if}
 
 <main class="text-white h-dvh flex flex-col">
+  <Alert
+    bind:alertStatus={alertOpen}
+    rounded={false}
+    dismissable
+    class="absolute w-full z-40 bg-red-900! text-white! border-black! border"
+    >{alertMsg}</Alert
+  >
   <!--
     <Header />
   -->

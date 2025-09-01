@@ -14,7 +14,6 @@
   const close = () => (open = false);
   const accept = async () => {
     if (onAccept) await onAccept();
-    close();
   };
 </script>
 

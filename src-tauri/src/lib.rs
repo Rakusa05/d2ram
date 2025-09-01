@@ -17,13 +17,22 @@ enum Region {
     Asia,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "lowercase")]
+enum ConnType {
+    Login,
+    Token,
+}
+
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct AccountConfig {
     id: u32,
     displayName: String,
+    connectionType: ConnType,
     accountLogin: String,
     password: String,
+    token: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
@@ -45,8 +54,10 @@ struct Account {
 #[derive(Serialize,Deserialize, Debug)]
 struct AccountInput {
   displayName: String,
+  connectionType: ConnType,
   accountLogin: String,
   password: String,
+  token: String,
 }
 
 struct AppState {
@@ -149,8 +160,10 @@ fn add_account(new_account: AccountInput, state: State<AppState>) -> Result<Vec<
 
       id: new_id,
       displayName: new_account.displayName,
+      connectionType: new_account.connectionType,
       accountLogin: new_account.accountLogin,
       password: new_account.password,
+      token: new_account.token,
     },
     rt: AccountRuntime {
 
@@ -171,8 +184,10 @@ fn edit_account(updated_account: AccountInput, id: u32, state: State<AppState>) 
 
   if let Some(account) = accounts.iter_mut().find(|a| a.cfg.id == id) {
     account.cfg.displayName = updated_account.displayName;
+    account.cfg.connectionType = updated_account.connectionType;
     account.cfg.accountLogin = updated_account.accountLogin;
     account.cfg.password = updated_account.password;
+    account.cfg.token = updated_account.token;
   }
 
   save_accounts_to_file(&accounts)?;
