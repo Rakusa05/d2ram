@@ -1,6 +1,5 @@
 <script lang="ts">
   import BaseModal from "./BaseModal.svelte";
-  import { Alert } from "flowbite-svelte";
   import type { Account } from "../lib/types";
 
   let {
@@ -129,7 +128,7 @@
       </div>
     </div>
     <button
-      class="bg-red-600 border border-black hover:bg-red-500 rounded-xl px-5 py-1 font-bold w-64"
+      class="bg-red-600 border border-black hover:bg-red-500 rounded-xl px-5 py-1 font-bold w-64 hover:cursor-pointer"
       onclick={handleDelete}>Delete</button
     >
   </div>

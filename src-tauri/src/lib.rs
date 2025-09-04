@@ -6,40 +6,43 @@ use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine as _};
 
 mod handle;
 mod account;
+mod settings;
 
-const D2R_PATH: &str = r"C:\Program Files (x86)\DIIR\D2R.exe";
+const D2R_DEFAULT_PATH: &str = r"C:\Program Files (x86)\Diablo II Resurrected\D2R.exe";
+
+const SALT: &[u8] = b"D2RAM";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "lowercase")]
 enum Region {
-    America,
-    Europe,
-    Asia,
+  America,
+  Europe,
+  Asia,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "lowercase")]
 enum ConnType {
-    Login,
-    Token,
+  Login,
+  Token,
 }
 
 #[allow(non_snake_case)]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct AccountConfig {
-    id: u32,
-    displayName: String,
-    connectionType: ConnType,
-    accountLogin: String,
-    password: String,
-    token: String,
+  id: u32,
+  displayName: String,
+  connectionType: ConnType,
+  accountLogin: String,
+  password: String,
+  token: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 struct AccountRuntime {
-    region: Option<Region>,
-    running: bool,
-    pid: Option<u32>,
+  region: Option<Region>,
+  running: bool,
+  pid: Option<u32>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -60,31 +63,45 @@ struct AccountInput {
   token: String,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "lowercase")]
+pub enum Language {
+  Default,
+  English,
+  French,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct AppSettings {
+  game_path: PathBuf,
+  game_language: Language,
+}
+
 struct AppState {
-    accounts: Mutex<Vec<Account>>,
+  accounts: Mutex<Vec<Account>>,
+  settings: std::sync::Mutex<AppSettings>,
 }
 
-const SALT: &[u8] = b"D2RAM";
-
-fn obfuscate_password(pw: &str) -> String {
-    let xored: Vec<u8> = pw
-        .as_bytes()
-        .iter()
-        .enumerate()
-        .map(|(i, b)| b ^ SALT[i % SALT.len()])
-        .collect();
-    format!("x1:{}", STANDARD_NO_PAD.encode(xored))
+fn obfuscate(txt: &str) -> String {
+  let xored: Vec<u8> = txt
+      .as_bytes()
+      .iter()
+      .enumerate()
+      .map(|(i, b)| b ^ SALT[i % SALT.len()])
+      .collect();
+  format!("x1:{}", STANDARD_NO_PAD.encode(xored))
 }
 
-fn deobfuscate_password(pw: &str) -> Result<String, String> {
-    let enc = pw.strip_prefix("x1:").ok_or("missing x1: prefix")?;
-    let data = STANDARD_NO_PAD.decode(enc).map_err(|e| e.to_string())?;
-    let plain: Vec<u8> = data
-        .into_iter()
-        .enumerate()
-        .map(|(i, b)| b ^ SALT[i % SALT.len()])
-        .collect();
-    String::from_utf8(plain).map_err(|e| e.to_string())
+fn deobfuscate(txt: &str) -> Result<String, String> {
+  let enc = txt.strip_prefix("x1:").ok_or("missing x1: prefix")?;
+  let data = STANDARD_NO_PAD.decode(enc).map_err(|e| e.to_string())?;
+  let plain: Vec<u8> = data
+      .into_iter()
+      .enumerate()
+      .map(|(i, b)| b ^ SALT[i % SALT.len()])
+      .collect();
+  String::from_utf8(plain).map_err(|e| e.to_string())
 }
 
 fn acc_config_path() -> Result<PathBuf, String> {
@@ -102,8 +119,13 @@ fn read_acc_config() -> Result<Vec<AccountConfig>, String> {
 
   for c in &mut cfgs {
     if c.password.starts_with("x1:") {
-      if let Ok(p) = deobfuscate_password(&c.password) {
+      if let Ok(p) = deobfuscate(&c.password) {
         c.password = p;
+      }
+    }
+    if c.token.starts_with("x1:") {
+      if let Ok(t) = deobfuscate(&c.token) {
+        c.token = t;
       }
     }
   }
@@ -116,7 +138,12 @@ fn save_accounts_to_file(accounts: &Vec<Account>) -> Result<(), String> {
     let mut c = a.cfg.clone();
 
     if !c.password.starts_with("x1:") {
-      c.password = obfuscate_password(&c.password);
+      c.password = obfuscate(&c.password);
+    }
+    if !c.token.starts_with("x1:") {
+      if !c.token.is_empty() {
+        c.token = obfuscate(&c.token);
+      }
     }
     c
   }).collect();
@@ -143,9 +170,9 @@ fn update_runtime(accounts: &mut [Account]) {
 
 #[tauri::command]
 fn get_accounts_info(state: State<AppState>) -> Result<Vec<Account>, String> {
-    let mut guard = state.accounts.lock().unwrap();
-    update_runtime(&mut guard);
-    Ok(guard.clone())
+  let mut guard = state.accounts.lock().unwrap();
+  update_runtime(&mut guard);
+  Ok(guard.clone())
 }
 
 #[tauri::command]
@@ -211,20 +238,30 @@ fn delete_account(id: u32, state: State<AppState>) -> Result<Vec<Account>, Strin
 }
 
 
-
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let _platform: &'static str = tauri_plugin_os::platform();
 
     let initial: Vec<Account> = read_acc_config().unwrap_or_default().into_iter().map(|cfg| Account { cfg, rt: AccountRuntime::default() }).collect();
+    let initial_settings = settings::read_app_settings().unwrap_or_default();
 
     tauri::Builder::default()
-        .manage(AppState { accounts: Mutex::new(initial)})
+        .manage(AppState { 
+          accounts: Mutex::new(initial),
+          settings: std::sync::Mutex::new(initial_settings),
+        })
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![get_accounts_info, add_account, edit_account, delete_account, account::launch::launch_account])
+        .invoke_handler(tauri::generate_handler![
+          get_accounts_info,
+          add_account, 
+          edit_account, 
+          delete_account, 
+          account::launch::launch_account,
+          settings::get_settings,
+          settings::save_settings
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

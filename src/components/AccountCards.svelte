@@ -9,12 +9,10 @@
   }>();
 
   const editAccount = () => {
-    console.log("editAccount");
     onDisplayClick(account);
   };
 
   const launchAccount = (region: Region) => {
-    console.log(`Launched Game for Account\n${account.id}\n${region}`);
     onPlayClick(account.id, region);
   };
 </script>

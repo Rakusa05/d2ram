@@ -31,11 +31,11 @@
 
     <div class="pt-10 flex space-x-6">
       <button
-        class="bg-red-600 border border-black hover:bg-red-500 rounded-xl px-5 py-1 font-bold"
+        class="bg-red-600 border border-black hover:bg-red-500 rounded-xl px-5 py-1 font-bold hover:cursor-pointer"
         onclick={accept}>{btnActionName}</button
       >
       <button
-        class="bg-red-600 border border-black hover:bg-red-500 rounded-xl px-5 py-1 font-bold"
+        class="bg-red-600 border border-black hover:bg-red-500 rounded-xl px-5 py-1 font-bold hover:cursor-pointer"
         onclick={close}>Cancel</button
       >
     </div>

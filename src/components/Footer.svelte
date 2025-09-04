@@ -3,12 +3,16 @@
   import { Button, ButtonGroup } from "flowbite-svelte";
   import { UserAddSolid, CogSolid } from "flowbite-svelte-icons";
 
+  import { invoke } from "@tauri-apps/api/core";
+
   let {
-    open = $bindable(false),
+    openAcc = $bindable(false),
+    openSet = $bindable(false),
     accounts,
     onPlayClick,
   } = $props<{
-    open: boolean;
+    openAcc: boolean;
+    openSet: boolean;
     accounts: Array<Account>;
     onPlayClick: (a: String, r: Region) => void | Promise<void>;
   }>();
@@ -39,13 +43,17 @@
     asiaCount: accounts.filter((acc: Account) => acc.region === "asia").length,
     accountNumber: accounts.length,
   });
+
+  async function test() {
+    await invoke("open_blizzard_login");
+  }
 </script>
 
 <!-- Need to finish placement for small screen size -->
 
 <div class="grid grid-cols-3 w-full items-center gap-4">
   <div class="flex justify-center">
-    <button class=" hover:cursor-pointer" onclick={() => (open = true)}
+    <button class=" hover:cursor-pointer" onclick={() => (openAcc = true)}
       ><UserAddSolid
         class="size-10 fill-red-700 stroke-black hover:fill-red-500"
       /></button
@@ -102,6 +110,7 @@
     <button class="hover:cursor-pointer"
       ><CogSolid
         class="size-10 fill-red-700 stroke-black hover:fill-red-500"
+        onclick={() => (openSet = true)}
       /></button
     >
   </div>

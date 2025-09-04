@@ -7,12 +7,15 @@
   import Footer from "../components/Footer.svelte";
   import AddAccount from "../components/AddAccount.svelte";
   import EditAccount from "../components/EditAccount.svelte";
-  import type { Account, Region } from "../lib/types";
+  import Settings from "../components/Settings.svelte";
+  import type { Account, AppSettings, Region } from "../lib/types";
 
   let accounts = $state<Array<Account>>([]);
+  let currentSettings = $state<AppSettings | null>();
 
   let addAccountModal = $state(false);
   let editAccountModal = $state(false);
+  let settingsModal = $state(false);
   let selectedAccount = $state<Account | null>(null);
   let alertOpen = $state(false);
   let alertMsg = $state<string>("");
@@ -76,6 +79,17 @@
     accounts = await invoke("get_accounts_info");
   }
 
+  async function loadSetting() {
+    currentSettings = await invoke<AppSettings>("get_settings");
+  }
+
+  async function saveSettings(settings: AppSettings) {
+    console.log("HELLLLO");
+    currentSettings = await invoke("save_settings", {
+      newSettings: settings,
+    });
+  }
+
   function alert(msg: string) {
     alertOpen = true;
     alertMsg = msg;
@@ -83,6 +97,7 @@
 
   onMount(() => {
     refreshAccount();
+    loadSetting();
     const timer = setInterval(() => {
       refreshAccount();
     }, 3000);
@@ -117,6 +132,14 @@
   />
 {/if}
 
+{#if currentSettings}
+  <Settings
+    bind:open={settingsModal}
+    {currentSettings}
+    onAccept={saveSettings}
+  />
+{/if}
+
 <main class="text-white h-dvh flex flex-col">
   <Alert
     bind:alertStatus={alertOpen}
@@ -143,7 +166,8 @@
   </div>
   <div class="min-h-30 bg-neutral-950 content-center">
     <Footer
-      bind:open={addAccountModal}
+      bind:openAcc={addAccountModal}
+      bind:openSet={settingsModal}
       {accounts}
       onPlayClick={launchAccount}
     />
